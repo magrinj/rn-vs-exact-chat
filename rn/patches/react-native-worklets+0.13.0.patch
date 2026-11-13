@@ -1,0 +1,53 @@
+diff --git a/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts b/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts
+--- a/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts
++++ b/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts
+@@ -39,11 +39,24 @@
+     }
+   }
+ 
++  // PATCH(idle-display-link): request a native frame only when a callback is
++  // queued, instead of re-requesting one at the end of every frame forever. The
++  // unconditional loop kept the 120 Hz CADisplayLink awake (and toggled setPaused,
++  // a render-server round trip, on every frame) while the app was idle.
++  let nativeFrameRequested = false;
++  function requestNativeFrame() {
++    if (!nativeFrameRequested) {
++      nativeFrameRequested = true;
++      globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    }
++  }
++
+   function requestAnimationFrame(
+     callback: (timestamp: number) => void
+   ): number {
+     const handle = queuedCallbacksEnd++;
+     queuedCallbacks.push(callback);
++    requestNativeFrame();
+     return handle;
+   }
+ 
+@@ -60,10 +73,10 @@
+   }
+ 
+   function nativeFlushQueue(timestamp: number) {
++    nativeFrameRequested = false;
+     flushQueue(timestamp);
+-
+-    /* Schedule next frame */
+-    globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    // Callbacks queued during this frame have already requested the next one.
++    // Finalizers alone never keep the display link awake: they ride on frames.
+   }
+ 
+   function flushQueue(timestamp: number) {
+@@ -79,8 +92,8 @@
+     queuedFinalizers.push(callback);
+   };
+ 
+-  /* Start the loop */
+-  globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++  /* Start: one frame for whatever is queued at setup; later frames on demand */
++  requestNativeFrame();
+ 
+   // TODO: Remove it after support for Reanimated 4.3 is dropped.
+   globalThis.__flushAnimationFrame = (eventTimestamp: number) => {

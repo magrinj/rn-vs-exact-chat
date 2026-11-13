@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+rn/ios/
+rn/android/
+exact-app/target/
+exact-app/.exact/
+bench/ui/build/
+bench/ui/Bench.xcodeproj/
+bench/screenrec
+bench/runs/
+*.trace
+*.xcresult
+*.log
+.DS_Store
+# the Exact framework checkout (see README)
+/exact/

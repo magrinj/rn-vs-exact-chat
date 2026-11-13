@@ -1,0 +1,198 @@
+// WhatsApp-style chat. app.ts owns the 10,000 messages and the live ones; this is the view.
+// The transcript is a window of at most 200 messages (`feed(cursor)`), moved by the list's
+// `reachstart`/`reachend`. Its rows don't depend on the date, so the newest window is baked
+// into the plan and the first frame shows its bubbles. Day labels depend on today: they are
+// computed here, from `exactTime()`.
+shape Time
+  epochAtZero: number
+  utcOffset: number
+
+shape Row
+  id: string
+  kind: string
+  mine: bool
+  text: string
+  time: string
+  photo: string
+  w: number
+  h: number
+  wave: string
+  dur: string
+  tail: bool
+  gap: number
+  day: number
+
+shape Window
+  rows: Row[]
+  earlier: string
+  later: string
+  hasEarlier: bool
+  hasLater: bool
+  lastDay: number
+
+shape Ack
+  n: number
+
+// A day is a count of days since 1970-01-01 (a Thursday), on the wall clock.
+fn iso(day: number): string = formatDate(day * 86400000, 0, "iso")
+fn monthName(day: number): string = match ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."].at(["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].indexOf(iso(day).slice(5, 7))) { case some(n) => n, case none => "" }
+fn weekday(day: number): number = day + 4 - floor((day + 4) / 7) * 7
+fn dayName(day: number): string = match ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].at(weekday(day)) { case some(n) => n, case none => "" }
+fn shortDayName(day: number): string = match ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."].at(weekday(day)) { case some(n) => n, case none => "" }
+fn dayOfMonth(day: number): string = iso(day).slice(8, 9) == "0" ? iso(day).slice(9, 10) : iso(day).slice(8, 10)
+fn dayLabel(day: number, today: number): string = today - day == 0 ? "Aujourd'hui" : today - day == 1 ? "Hier" : today - day < 7 ? dayName(day) : iso(day).slice(0, 4) == iso(today).slice(0, 4) ? `${shortDayName(day)} ${dayOfMonth(day)} ${monthName(day)}` : `${dayOfMonth(day)} ${monthName(day)} ${iso(day).slice(0, 4)}`
+
+component Chat
+  state draft = ""
+  state cursor = ""
+  state pendingStart = ""
+  state anchorKey = ""
+  state atTop = false
+  resource time = exactTime() as shape Time
+  resource feed = feed(cursor) as shape Window
+  // At the end, an arrival refreshes the newest window (at most 200 rows, whatever the history's
+  // length); scrolled away from it, an arrival changes nothing on screen and refreshes nothing.
+  mutation got as shape Ack queue refreshes feed
+  mutation gotAway as shape Ack queue
+  mutation sent as shape Ack queue refreshes feed then toEnd
+  derive today = floor((time.epochAtZero + time.utcOffset * 60000) / 86400000)
+  // The stored days move so that the last one is yesterday.
+  derive shift = today - 1 - feed.lastDay
+  derive firstId = match feed.rows.at(0) { case some(m) => m.id, case none => "" }
+  derive lastId = match feed.rows.at(-1) { case some(m) => m.id, case none => "" }
+
+  task tick mount
+    every(1000, arrive)
+  action arrive
+    if cursor == ""
+      send got = incoming(time.epochAtZero + performanceNow(), time.utcOffset)
+    else
+      send gotAway = incoming(time.epochAtZero + performanceNow(), time.utcOffset)
+  // Older pages. A very fast fling can reach the top of the loaded window before its page
+  // lands: there iOS anchors nothing (content inserted above shows) and `reachstart` stays
+  // disarmed until the reader leaves its band, so the list stopped. Paging therefore also
+  // follows the scroll offset itself, and a page that lands while the list sits at its top
+  // puts the row that was there back in place.
+  action reachEarlier
+    if feed.hasEarlier and pendingStart == "" and cursor != feed.earlier
+      pendingStart = feed.earlier
+      anchorKey = firstId
+      cursor = feed.earlier
+  action moved(x: number, y: number, e: ScrollEvent)
+    if (y <= 1) != atTop
+      atTop = y <= 1
+    if y < e.clientHeight * 3 and feed.hasEarlier and pendingStart == "" and cursor != feed.earlier
+      pendingStart = feed.earlier
+      anchorKey = firstId
+      cursor = feed.earlier
+  // Restarts when the window's first row changes, that is when the page has landed.
+  task landing when pendingStart != "" key=firstId
+    after(1, landed)
+  action landed
+    if firstId != anchorKey
+      if atTop
+        scrollIntoView("transcript", anchorKey, block="start")
+      pendingStart = ""
+  action reachLater
+    if feed.hasLater and pendingStart == ""
+      cursor = feed.later
+  action edit(v: string)
+    draft = v
+  action post
+    if draft.trim() != ""
+      send sent = sendMessage(draft.trim(), time.epochAtZero + performanceNow(), time.utcOffset)
+      draft = ""
+      cursor = ""
+  action toEnd
+    scrollIntoView("transcript", lastId, block="end")
+
+  view
+    main testId="root" viewport-fit="cover" interactive-widget="resizes-content" width="100%" height="100%" display="flex" flex-direction="column" overflow="hidden" background-color="#EFE7DD"
+      image "assets/wallpaper.png" position="absolute" inset=0 width="100%" height="100%" object-fit="cover" aria-hidden=true
+      // Header
+      row align-items="center" gap=8 padding="env(safe-area-inset-top) 12px 6px 4px" background-color="#F6F6F6EE"
+        border-bottom="0.5px solid #C6C6C8" flex-shrink=0
+        row align-items="center" gap=0 color="#007AFF"
+          image "symbol:back" font-size=22 font-weight=600 color="#007AFF" aria-hidden=true
+          text "12" font-size=17 color="#007AFF"
+        image "assets/photos/photo_09.jpg" width=36 height=36 border-radius=18 object-fit="cover" aria-label="Camille"
+        column flex=1 min-width=0
+          text "Camille" font-size=17 font-weight=600 color="#000000" white-space="nowrap" overflow="hidden" text-overflow="ellipsis"
+          text "en ligne" font-size=12 color="#8E8E93"
+        image "symbol:sf/video" font-size=21 color="#007AFF" aria-label="Appel vidéo" padding="0 8px"
+        image "symbol:sf/phone" font-size=19 color="#007AFF" aria-label="Appel"
+      // Transcript: a window of the 10,000 stored messages and the live ones
+      list id="transcript" appearance="none" virtualized=true estimated-item-height=88 scroll-start="end" scrollFollowEnd=(cursor == "")
+        reachstart=reachEarlier reachend=reachLater reach-margin="500%" scroll=moved flex=1 min-height=0
+        overflow-x="hidden" testId="transcript" padding-bottom=8
+        for m in feed.rows key=m.id
+          column
+            Bubble(m=m, shift=shift, today=today)
+      // Input bar
+      row align-items="flex-end" gap=10 padding="6px 10px max(6px, env(safe-area-inset-bottom)) 10px" background-color="#F6F6F6"
+        border-top="0.5px solid #C6C6C8" flex-shrink=0
+        image "symbol:add" font-size=24 color="#007AFF" aria-label="Joindre" padding-bottom=6
+        row flex=1 min-width=0 align-items="flex-end" background-color="#FFFFFF" border="1px solid #D1D1D6" border-radius=18 padding="0 8px 0 12px"
+          input id="composer" value=draft input=edit submit=post enterkeyhint="send"
+            aria-label="Message" testId="composer" flex=1 min-width=0 padding="7px 0" border="none" background-color="transparent"
+            font-size=17 color="#000000"
+          image "symbol:emoji" font-size=19 color="#007AFF" aria-hidden=true padding-bottom=8
+        if draft.trim() == ""
+          image "symbol:camera" font-size=21 color="#007AFF" aria-label="Appareil photo" padding-bottom=7
+          image "symbol:microphone" font-size=21 color="#007AFF" aria-label="Message vocal" padding-bottom=7
+        else
+          button press=post retainFocus=true aria-label="Envoyer" testId="send" width=34 height=34 border-radius=17
+            background-color="#007AFF" border="none" padding=0 margin-bottom=1 display="flex" align-items="center" justify-content="center"
+            image "symbol:sf/paperplane.fill" font-size=16 color="#FFFFFF"
+
+component Ticks
+  view
+    svg width=16 height=11 viewBox="0 0 16 11"
+      path d="M1 6l3 3 6-8M6 9l1 0.5 7-8.5" fill="none" stroke="#53BDEB" stroke-width=1.4 stroke-linecap="round" stroke-linejoin="round"
+
+component Bubble
+  props
+    m: Row
+    shift: number
+    today: number
+  view
+    if m.kind == "day"
+      row justify-content="center" padding-top=m.gap padding-bottom=6
+        text dayLabel(m.day + shift, today) testId=`day-${m.day}` font-size=12 font-weight=500 color="#54656F" background-color="#FFFFFFE6" padding="4px 10px" border-radius=8
+    else
+      row justify-content=(m.mine ? "flex-end" : "flex-start") padding-top=m.gap padding-left=14 padding-right=14
+        column position="relative" max-width="78%"
+          if m.tail and m.mine
+            svg position="absolute" bottom=0 right="-10px" width=20 height=20 viewBox="0 0 20 20" aria-hidden=true testId=`tail-${m.id}`
+              path d="M10 0V3C12 11 16 17 20 20H0V0Z" fill="#D9FDD3"
+          else if m.tail
+            svg position="absolute" bottom=0 left="-10px" width=20 height=20 viewBox="0 0 20 20" aria-hidden=true testId=`tail-${m.id}`
+              path d="M10 0V3C8 11 4 17 0 20H20V0Z" fill="#FFFFFF"
+          column position="relative" border-radius=8 box-shadow="0 1px 0.5px #0B141A22"
+            background-color=(m.mine ? "#D9FDD3" : "#FFFFFF") testId=`message-${m.id}`
+            if m.kind == "photo"
+              column padding=3
+                image m.photo width=m.w height=m.h border-radius=6 object-fit="cover" aria-label="Photo"
+                if m.text != ""
+                  text m.text font-size=16 color="#111B21" white-space="pre-wrap" overflow-wrap="break-word" padding="5px 5px 6px 5px" width=(m.w - 10)
+              row position="absolute" right=9 bottom=7 gap=3 align-items="center"
+                text m.time font-size=11 color=(m.text == "" ? "#FFFFFF" : "#667781") text-shadow=(m.text == "" ? "0 1px 2px #00000066" : "none")
+                if m.mine
+                  Ticks()
+            else if m.kind == "voice"
+              row width=250 align-items="center" gap=8 padding="8px 10px 20px 8px"
+                image "symbol:play-fill" font-size=24 color="#8696A0" aria-label="Lire le message vocal"
+                svg width=150 height=24 viewBox="0 0 150 24" flex-shrink=0
+                  path d=m.wave fill=(m.mine ? "#96B59A" : "#B4BDC3")
+                  circle cx=3 cy=12 r=6 fill=(m.mine ? "#53BDEB" : "#3DAD5C")
+              text m.dur font-size=11 color="#667781" position="absolute" left=46 bottom=5
+              row position="absolute" right=9 bottom=5 gap=3 align-items="center"
+                text m.time font-size=11 color="#667781"
+                if m.mine
+                  Ticks()
+            else
+              text m.text font-size=17 color="#111B21" white-space="pre-wrap" overflow-wrap="break-word" padding="6px 9px 7px 9px"
+              row position="absolute" right=9 bottom=5 gap=3 align-items="center"
+                text m.time font-size=11 color="#667781"
+                if m.mine
+                  Ticks()

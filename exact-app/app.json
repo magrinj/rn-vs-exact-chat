@@ -1,0 +1,31 @@
+{
+  "$schema": "../exact/scripts/app.schema.json",
+  "name": "WhatsApp",
+  "short_name": "WhatsApp",
+  "id": "fr.magrin.chatbench",
+  "start_url": "/",
+  "display": "standalone",
+  "app": {
+    "id": "fr.magrin.chatbench",
+    "name": "WhatsApp"
+  },
+  "host": {
+    "web": {},
+    "ios": {
+      "minimumOS": "17.0",
+      "deviceFamily": [
+        "iphone",
+        "ipad"
+      ]
+    }
+  },
+  "deploy": {
+    "store": {
+      "web": "0",
+      "ios": "0"
+    }
+  },
+  "typescript": {
+    "placement": "worker"
+  }
+}

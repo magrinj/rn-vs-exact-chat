@@ -1,0 +1,50 @@
+diff --git a/node_modules/react-native-reanimated/src/mappers.native.ts b/node_modules/react-native-reanimated/src/mappers.native.ts
+--- a/node_modules/react-native-reanimated/src/mappers.native.ts
++++ b/node_modules/react-native-reanimated/src/mappers.native.ts
+@@ -75,9 +75,25 @@
+     sortedMappers = newOrder;
+   }
+ 
++  // PATCH(idle-display-link): the mapper run below is a frame finalizer, and frames
++  // are no longer produced while idle, so anything that needs a mapper run asks
++  // for one frame. Coalesced: at most one pending wake-up frame.
++  let wakeRequested = false;
++  function requestMapperFrame() {
++    if (!wakeRequested) {
++      wakeRequested = true;
++      requestAnimationFrame(() => {
++        wakeRequested = false;
++      });
++    }
++  }
++
+   let mapperRunFinalizers: (() => void)[] = [];
+   global.__requestMapperRunFinalizer = (finalizer: () => void) => {
+     mapperRunFinalizers.push(finalizer);
++    if (!processingMappers) {
++      requestMapperFrame();
++    }
+   };
+ 
+   let isAnyMapperDirty = false;
+@@ -164,10 +180,12 @@
+       mappers.set(mapper.id, mapper);
+       sortedMappers = [];
+       isAnyMapperDirty = true;
++      requestMapperFrame();
+       for (const sv of mapper.inputs) {
+         sv.addListener(mapper.id, () => {
+           mapper.dirty = true;
+           isAnyMapperDirty = true;
++          requestMapperFrame();
+         });
+       }
+     },
+@@ -177,6 +195,7 @@
+         mappers.delete(mapper.id);
+         sortedMappers = [];
+         isAnyMapperDirty = true;
++        requestMapperFrame();
+         for (const sv of mapper.inputs) {
+           sv.removeListener(mapper.id);
+         }

@@ -1,0 +1,265 @@
+// The transcript is a window of 200 messages (and their day separators) over the 10,000 stored
+// ones and the live ones; it opens at the newest, baked into the plan.
+test "opens at the newest window, baked: bubbles before any data arrives"
+  expect state feed.rows.length == 202
+  expect tree has "message-10000"
+  clock data
+  expect state feed.rows.length == 202
+  expect state cursor == ""
+
+test "a new message arrives every second, under today's separator"
+  clock data
+  clock +3000
+  clock data
+  expect tree has "message-100003"
+  expect text "day-20316" == "Aujourd'hui"
+  expect state feed.rows.length == 203
+
+test "the stored days end yesterday"
+  epoch "2026-03-15T09:00:00Z"
+  time-zone "Europe/Paris"
+  clock data
+  expect state shift == 211
+  tap "transcript" into "d-20315"
+  expect text "day-20315" == "Hier"
+  expect state today == 20527
+
+test "a typed message is sent and the field clears"
+  clock data
+  type "composer" "Coucou !"
+  tap "send"
+  clock data
+  expect text "composer" == ""
+  expect tree has "message-100001"
+  expect state cursor == ""
+
+// Fast flings upward, one after another, never scrolling back down, reach message 1: every page
+// lands and the next one is asked for, even when a page lands while the list sits at its top.
+test "fast flings upward reach message 1"
+  clock data
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  tap "transcript" drag 0 3000
+  clock data
+  clock settle
+  expect state cursor == "0"
+  expect state feed.hasEarlier == false
+  tap "transcript" into "1"
+  expect tree has "message-1"
