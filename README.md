@@ -2,9 +2,9 @@
 
 Une app de chat façon WhatsApp, construite deux fois par un agent IA à partir du même cahier des charges : une fois en **React Native (Expo)**, une fois avec **[Exact](https://github.com/expo/exact)**. Les deux versions ont ensuite reçu le même prompt d'optimisation, puis ont été mesurées sur le même iPhone 17 Pro, en build Release.
 
-https://github.com/magrinj/rn-vs-exact-chat/raw/main/linkedin.mp4
+https://github.com/user-attachments/assets/b4eecb46-8879-4a6b-b8f7-b1cdb9038d22
 
-`linkedin.mp4` (34 s) : ouverture en temps réel puis au ralenti ×6, puis scroll au doigt jusqu'au message 1. La fin du scroll de React Native est accélérée ×4, avec la mention à l'écran. Les deux écrans sont calés sur l'instant où le doigt quitte l'icône.
+ouverture en temps réel puis au ralenti ×6, puis scroll au doigt jusqu'au message 1. La fin du scroll de React Native est accélérée ×4, avec la mention à l'écran. Les deux écrans sont calés sur l'instant où le doigt quitte l'icône.
 
 ## L'app
 
